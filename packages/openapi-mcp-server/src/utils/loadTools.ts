@@ -40,17 +40,18 @@ const trimSlashes = (str: string) => {
   return str.replace(/^\/+|\/+$/g, '');
 };
 
-// Anthropic API requires property names to match ^[a-zA-Z0-9_.-]{1,64}$
-const VALID_PROPERTY_KEY_PATTERN = /^[a-zA-Z0-9_.-]{1,64}$/;
-
-export function sanitizePropertyKey(name: string): string {
-  if (VALID_PROPERTY_KEY_PATTERN.test(name)) {
-    return name;
-  }
-  return name
-    .replace(/</g, '_before')
-    .replace(/>/g, '_after')
-    .replace(/[^a-zA-Z0-9_.-]/g, '_')
+/**
+ * Sanitize property keys to match the pattern required by LLM tool-use APIs.
+ * Twilio's OpenAPI spec includes parameter names with angle brackets
+ * (e.g., StartTime<, EndTime>) for date range filtering. These characters
+ * are rejected by APIs that validate property keys against
+ * /^[a-zA-Z0-9_.-]{1,64}$/.
+ */
+export function sanitizePropertyKey(key: string): string {
+  return key
+    .replace(/</g, '_lt')
+    .replace(/>/g, '_gt')
+    .replace(/[^a-zA-Z0-9_.\-]/g, '_')
     .slice(0, 64);
 }
 
@@ -72,7 +73,9 @@ function toSchema(
   if (schema.type === 'object' && schema.properties) {
     result.properties = {};
     Object.entries(schema.properties).forEach(([key, value]) => {
-      result.properties![key] = toSchema(value as OpenAPIV3.SchemaObject);
+      result.properties![sanitizePropertyKey(key)] = toSchema(
+        value as OpenAPIV3.SchemaObject,
+      );
     });
 
     if (schema.required) {
@@ -158,22 +161,22 @@ export default function loadTools(specs: OpenAPISpec[], filters?: ToolFilters) {
                 .filter((param) => 'name' in param && 'in' in param)
                 .forEach((param) => {
                   const schema = param.schema as OpenAPIV3.SchemaObject;
-                  const sanitized = sanitizePropertyKey(param.name);
+                  const sanitizedKey = sanitizePropertyKey(param.name);
 
-                  tool.inputSchema.properties[sanitized] = toSchema(
+                  tool.inputSchema.properties[sanitizedKey] = toSchema(
                     schema,
                     param.description || `${param.name} parameter`,
                   );
 
-                  if (sanitized !== param.name) {
+                  if (sanitizedKey !== param.name) {
                     if (!api.parameterNameMapping) {
                       api.parameterNameMapping = {};
                     }
-                    api.parameterNameMapping[sanitized] = param.name;
+                    api.parameterNameMapping[sanitizedKey] = param.name;
                   }
 
                   if (param.required) {
-                    tool.inputSchema.required.push(sanitized);
+                    tool.inputSchema.required.push(sanitizedKey);
                   }
                 });
             }
@@ -194,18 +197,18 @@ export default function loadTools(specs: OpenAPISpec[], filters?: ToolFilters) {
               if (schema.properties) {
                 Object.entries(schema.properties).forEach(([key, value]) => {
                   const property = value as OpenAPIV3.SchemaObject;
-                  const sanitized = sanitizePropertyKey(key);
+                  const sanitizedKey = sanitizePropertyKey(key);
 
-                  tool.inputSchema.properties[sanitized] = toSchema(
+                  tool.inputSchema.properties[sanitizedKey] = toSchema(
                     property,
                     property.description ?? `${key} parameter`,
                   );
 
-                  if (sanitized !== key) {
+                  if (sanitizedKey !== key) {
                     if (!api.parameterNameMapping) {
                       api.parameterNameMapping = {};
                     }
-                    api.parameterNameMapping[sanitized] = key;
+                    api.parameterNameMapping[sanitizedKey] = key;
                   }
                 });
               }

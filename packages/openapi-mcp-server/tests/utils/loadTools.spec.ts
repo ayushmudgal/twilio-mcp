@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { HttpMethod } from '@app/types';
 import { OpenAPISpec } from '@app/utils';
-import loadTools from '@app/utils/loadTools';
+import loadTools, { sanitizePropertyKey } from '@app/utils/loadTools';
 
 describe('loadTools', () => {
   const createMockSpec = (
@@ -621,6 +621,62 @@ describe('loadTools', () => {
     }
   });
 
+  it('should sanitize property keys with invalid characters', () => {
+    const specs: OpenAPISpec[] = [
+      createMockSpec('service1', {
+        '/calls': {
+          get: {
+            operationId: 'listCalls',
+            description: 'List calls',
+            parameters: [
+              {
+                name: 'StartTime<',
+                in: 'query',
+                description: 'Filter by start time before',
+                schema: { type: 'string' },
+              },
+              {
+                name: 'StartTime>',
+                in: 'query',
+                description: 'Filter by start time after',
+                schema: { type: 'string' },
+              },
+              {
+                name: 'EndTime<',
+                in: 'query',
+                description: 'Filter by end time before',
+                schema: { type: 'string' },
+              },
+            ],
+          },
+        },
+      }),
+    ];
+
+    const { tools } = loadTools(specs);
+    const keyPattern = /^[a-zA-Z0-9_.\-]{1,64}$/;
+
+    for (const [, tool] of tools) {
+      const keys = Object.keys(tool.inputSchema.properties);
+      // All keys must match the valid pattern
+      for (const key of keys) {
+        expect(key).toMatch(keyPattern);
+      }
+      // Angle brackets should be replaced with _lt and _gt
+      expect(tool.inputSchema.properties).toHaveProperty('StartTime_lt');
+      expect(tool.inputSchema.properties).toHaveProperty('StartTime_gt');
+      expect(tool.inputSchema.properties).toHaveProperty('EndTime_lt');
+      // Original keys with angle brackets should NOT exist
+      expect(tool.inputSchema.properties).not.toHaveProperty('StartTime<');
+      expect(tool.inputSchema.properties).not.toHaveProperty('StartTime>');
+      expect(tool.inputSchema.properties).not.toHaveProperty('EndTime<');
+      // Descriptions should be preserved
+      expect(tool.inputSchema.properties.StartTime_lt.description).toBe(
+        'Filter by start time before',
+      );
+    }
+  });
+
   it('should use property key as description if none is provided', () => {
     const specs: OpenAPISpec[] = [
       createMockSpec('service1', {
@@ -962,5 +1018,118 @@ describe('loadTools', () => {
 
     // Check required fields
     expect(postTool.inputSchema.required).toContain('items');
+  });
+
+  it('should sanitize parameter names with invalid characters', () => {
+    const specs: OpenAPISpec[] = [
+      createMockSpec('service1', {
+        '/calls': {
+          get: {
+            operationId: 'listCalls',
+            description: 'List calls',
+            parameters: [
+              {
+                name: 'DateCreated<',
+                in: 'query',
+                required: false,
+                description: 'Before date',
+                schema: { type: 'string' },
+              },
+              {
+                name: 'StartTime>',
+                in: 'query',
+                required: true,
+                description: 'After start time',
+                schema: { type: 'string' },
+              },
+              {
+                name: 'Status',
+                in: 'query',
+                required: false,
+                description: 'Call status',
+                schema: { type: 'string' },
+              },
+            ],
+          },
+        },
+      }),
+    ];
+
+    const { tools, apis } = loadTools(specs);
+    const tool = tools.get('service1--listCalls')!;
+    const api = apis.get('service1--listCalls')!;
+
+    // Sanitized keys should be used in the schema
+    expect(tool.inputSchema.properties).toHaveProperty('DateCreated_before');
+    expect(tool.inputSchema.properties).toHaveProperty('StartTime_after');
+    expect(tool.inputSchema.properties).toHaveProperty('Status');
+
+    // Original invalid keys should not be present
+    expect(tool.inputSchema.properties).not.toHaveProperty('DateCreated<');
+    expect(tool.inputSchema.properties).not.toHaveProperty('StartTime>');
+
+    // Required array should use sanitized names
+    expect(tool.inputSchema.required).toContain('StartTime_after');
+    expect(tool.inputSchema.required).not.toContain('StartTime>');
+
+    // Mapping should be recorded on the API
+    expect(api.parameterNameMapping).toEqual({
+      DateCreated_before: 'DateCreated<',
+      StartTime_after: 'StartTime>',
+    });
+  });
+
+  it('should sanitize request body property names with invalid characters', () => {
+    const specs: OpenAPISpec[] = [
+      createMockSpec('service1', {
+        '/records': {
+          post: {
+            operationId: 'createRecord',
+            description: 'Create record',
+            requestBody: {
+              content: {
+                'application/x-www-form-urlencoded': {
+                  schema: {
+                    type: 'object',
+                    required: ['DateCreated<'],
+                    properties: {
+                      'DateCreated<': {
+                        type: 'string',
+                        description: 'Before date',
+                      },
+                      Name: {
+                        type: 'string',
+                        description: 'Record name',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+    ];
+
+    const { tools, apis } = loadTools(specs);
+    const tool = tools.get('service1--createRecord')!;
+    const api = apis.get('service1--createRecord')!;
+
+    expect(tool.inputSchema.properties).toHaveProperty('DateCreated_before');
+    expect(tool.inputSchema.properties).not.toHaveProperty('DateCreated<');
+    expect(tool.inputSchema.required).toContain('DateCreated_before');
+    expect(api.parameterNameMapping).toEqual({
+      DateCreated_before: 'DateCreated<',
+    });
+  });
+
+  it('sanitizePropertyKey should leave valid names unchanged', () => {
+    expect(sanitizePropertyKey('Status')).toBe('Status');
+    expect(sanitizePropertyKey('my.param-name_1')).toBe('my.param-name_1');
+  });
+
+  it('sanitizePropertyKey should replace < and > correctly', () => {
+    expect(sanitizePropertyKey('DateCreated<')).toBe('DateCreated_before');
+    expect(sanitizePropertyKey('StartTime>')).toBe('StartTime_after');
   });
 });

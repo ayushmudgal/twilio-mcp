@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types';
-import { API, ToolFilters } from '@twilio-alpha/openapi-mcp-server';
+import { API, ToolFilters } from '@ayushmudgal94/openapi-mcp-server';
 import { uploadFunctionDefinition, uploadFunctionAPI } from './uploadFunction';
 import { uploadAssetDefinition, uploadAssetAPI } from './uploadAsset';
 

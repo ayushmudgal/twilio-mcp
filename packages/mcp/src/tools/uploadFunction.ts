@@ -1,8 +1,8 @@
 import FormData from 'form-data';
 import { Tool } from '@modelcontextprotocol/sdk/types';
-import { Http } from '@twilio-alpha/openapi-mcp-server/build/utils';
-import { HttpResponse } from '@twilio-alpha/openapi-mcp-server/build/utils/http';
-import { API } from '@twilio-alpha/openapi-mcp-server';
+import { Http } from '@ayushmudgal94/openapi-mcp-server/build/utils';
+import { HttpResponse } from '@ayushmudgal94/openapi-mcp-server/build/utils/http';
+import { API } from '@ayushmudgal94/openapi-mcp-server';
 
 export const name = 'TwilioServerlessV1--UploadServerlessFunction';
 

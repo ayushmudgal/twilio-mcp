@@ -9,7 +9,7 @@ import {
   API,
   OpenAPIMCPServer,
   ToolFilters,
-} from '@twilio-alpha/openapi-mcp-server';
+} from '@ayushmudgal94/openapi-mcp-server';
 
 import { Credentials } from '@app/types';
 import { toolRequiresAccountSid } from '@app/utils';
@@ -60,6 +60,32 @@ export default class TwilioOpenAPIMCPServer extends OpenAPIMCPServer {
    */
   private static systemPrompt(accountSid: string): string {
     return `You are an agent to call Twilio APIs. If no accountSid is provided, you MUST use ${accountSid}`;
+  }
+
+  /**
+   * Shorten tool name to fit within 64 character limit after MCP suffix is added.
+   * LibreChat adds '_mcp_twilio' (11 chars) suffix, so we limit to 53 chars.
+   * Simple truncation only — no hash suffix to avoid mixed naming patterns
+   * that confuse LLMs into replacing '--' with '__'.
+   * @param name Original tool name
+   * @param existing Set of already-used names to avoid collisions
+   * @returns Shortened tool name
+   */
+  private static shortenToolName(
+    name: string,
+    existing: Set<string>,
+  ): string {
+    const MAX_LENGTH = 53; // 64 - 11 for '_mcp_twilio' suffix
+    if (name.length <= MAX_LENGTH) {
+      return name;
+    }
+
+    let shortened = name.slice(0, MAX_LENGTH);
+    while (existing.has(shortened)) {
+      shortened = shortened.slice(0, -1);
+    }
+
+    return shortened;
   }
 
   /**
@@ -132,23 +158,50 @@ export default class TwilioOpenAPIMCPServer extends OpenAPIMCPServer {
       mimeType: 'text/plain',
     });
 
+    // Shorten tool names and rebuild tools/apis maps
+    const shortenedTools = new Map<string, Tool>();
+    const shortenedApis = new Map<string, API>();
+    const usedNames = new Set<string>();
+
     for (const [id, tool] of this.tools) {
+      const shortenedId = TwilioOpenAPIMCPServer.shortenToolName(id, usedNames);
+      usedNames.add(shortenedId);
+
+      let updatedTool = tool;
       if (tool.inputSchema?.properties?.AccountSid) {
         const originalDescription = tool.description;
         const enhancedDescription = `${originalDescription} (Uses default AccountSid: ${this.config.accountSid} if not provided)`;
-        const updatedTool = {
+        updatedTool = {
           ...tool,
+          name: shortenedId,
           description: enhancedDescription,
         };
+      } else {
+        updatedTool = {
+          ...tool,
+          name: shortenedId,
+        };
+      }
 
-        this.tools.set(id, updatedTool);
+      shortenedTools.set(shortenedId, updatedTool);
+
+      // Move API to new shortened key
+      const api = this.apis.get(id);
+      if (api) {
+        shortenedApis.set(shortenedId, api);
       }
     }
 
+    // Replace the maps
+    this.tools = shortenedTools;
+    this.apis = shortenedApis;
+
     const additionalTools = loadAdditionalTools(this.configuration?.filters);
     for (const [id, { tool, api }] of additionalTools) {
-      this.tools.set(id, tool);
-      this.apis.set(id, api);
+      const shortenedId = TwilioOpenAPIMCPServer.shortenToolName(id, usedNames);
+      usedNames.add(shortenedId);
+      this.tools.set(shortenedId, { ...tool, name: shortenedId });
+      this.apis.set(shortenedId, api);
     }
   }
 }

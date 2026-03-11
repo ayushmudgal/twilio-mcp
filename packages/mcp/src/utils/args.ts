@@ -1,4 +1,4 @@
-import { logger } from '@twilio-alpha/openapi-mcp-server';
+import { logger } from '@ayushmudgal94/openapi-mcp-server';
 import minimist from 'minimist';
 
 import { isValidTwilioSid } from './general';
@@ -6,6 +6,7 @@ import { isValidTwilioSid } from './general';
 interface ParsedArgs {
   services: string[];
   tags: string[];
+  methods: string[];
   accountSid?: string;
   apiKey?: string;
   apiSecret?: string;
@@ -33,12 +34,13 @@ const parsedArgs = async (argv: string[]): Promise<ParsedArgs> => {
       s: 'apiSecret',
       t: 'tags',
       e: 'services',
+      m: 'methods',
     },
-    string: ['accountSid', 'apiKey', 'apiSecret', 'tags', 'services'],
+    string: ['accountSid', 'apiKey', 'apiSecret', 'tags', 'services', 'methods'],
   });
 
   // eslint-disable-next-line prefer-const
-  let { services: sArgs, accountSid, apiKey, apiSecret, tags: tArgs } = parsed;
+  let { services: sArgs, accountSid, apiKey, apiSecret, tags: tArgs, methods: mArgs } = parsed;
 
   // Handle "accountSid/apiKey:apiSecret" format
   if (
@@ -80,10 +82,12 @@ const parsedArgs = async (argv: string[]): Promise<ParsedArgs> => {
   }
 
   const tags = sanitizeArgs(tArgs);
+  const methods = sanitizeArgs(mArgs);
 
   return {
     services,
     tags,
+    methods,
     accountSid,
     apiKey,
     apiSecret,

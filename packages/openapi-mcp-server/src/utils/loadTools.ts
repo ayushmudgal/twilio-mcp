@@ -8,6 +8,7 @@ import { OpenAPISpec } from './readSpecs';
 export type ToolFilters = {
   services?: string[];
   tags?: string[];
+  methods?: string[];
   callback?: (spec: OpenAPISpec) => boolean;
 };
 
@@ -132,6 +133,13 @@ export default function loadTools(specs: OpenAPISpec[], filters?: ToolFilters) {
             }
             const operation = op as OpenAPIV3.OperationObject;
             return (operation.tags ?? []).some((tag) => tags.includes(tag));
+          })
+          .filter(([method]) => {
+            const methods = filters?.methods ?? [];
+            if (methods.length === 0) {
+              return true;
+            }
+            return methods.some((m) => m.toLowerCase() === method.toLowerCase());
           })
           .forEach(([method, op]) => {
             const operation = op as OpenAPIV3.OperationObject;

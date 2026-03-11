@@ -317,16 +317,23 @@ export default class OpenAPIMCPServer {
    */
   private async handleCallTool(request: CallToolRequest) {
     const id = request.params.name;
-    const name: string = id.split('--')[1]?.trim();
-    const tool = this.tools.get(id);
-    const api = this.apis.get(id);
+    // Claude Code/LibreChat may:
+    // 1. Add suffix like '_mcp_twilio' to tool names
+    // 2. Replace '--' with '__' in tool names
+    // Normalize for lookup by removing suffix and converting separators
+    const normalizedId = id
+      .replace(/_mcp_[^_]+$/, '') // Remove _mcp_* suffix
+      .replace(/__/g, '--');       // Convert __ to --
+    const name: string = normalizedId.split('--')[1]?.trim();
+    const tool = this.tools.get(normalizedId);
+    const api = this.apis.get(normalizedId);
     if (!tool || !api) {
       throw new Error(`Tool (${id}) not found: ${name}`);
     }
     const rawBody = request.params.arguments ?? {};
     const body = this.callToolBody(tool, api, rawBody);
 
-    const httpResponse = await this.makeRequest(id, api, body);
+    const httpResponse = await this.makeRequest(normalizedId, api, body);
     if (!httpResponse.ok) {
       this.logger.error({
         message: 'failed to make request',

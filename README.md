@@ -1,82 +1,171 @@
 <p align="center"><img src="https://github.com/twilio-labs/mcp/blob/246f1b1cd1854d1343468af07a2dfa179dc30a16/docs/twilioAlphaLogoLight.png?raw=true#gh-dark-mode-only" height="70" alt="Twilio Alpha"/><img src="https://github.com/twilio-labs/mcp/blob/246f1b1cd1854d1343468af07a2dfa179dc30a16/docs/twilioAlphaLogoDark.png?raw=true#gh-light-mode-only" height="70" alt="Twilio Alpha"/></p>
-<h1 align="center">Twilio MCP Monorepo</h1>
+<h1 align="center">Twilio MCP (Fork)</h1>
 
-This is a monorepo for the Model Context Protocol server that exposes all of Twilio APIs.
+Fork of [twilio-labs/mcp](https://github.com/twilio-labs/mcp) published as `@ayushmudgal94/twilio-mcp` on npm.
 
-## What is MCP?
+## What's different from upstream
 
-The Model Context Protocol (MCP) is a protocol for exchanging model context information between AI tools and services. This implementation allows you to expose Twilio's APIs to AI assistants and other tools that support the MCP protocol.
+- **Tool name separator**: Uses `_` instead of `--` for cross-provider compatibility (Bedrock, Gemini, LibreChat)
+- **Tool name shortening**: Truncates names to 53 chars so LibreChat's `_mcp_twilio` suffix stays under 64
+- **Tool name normalization**: Handles LibreChat suffix stripping on incoming tool calls
+- **GET query parameters**: Properly sends params as query strings instead of dropping them
+- **Parameter sanitization**: Handles Twilio's `<`/`>` in param names (e.g. `StartTime<` → `StartTime_lt`)
+- **`--methods` flag**: Filter by HTTP method (e.g. `--methods get` for read-only mode)
 
 ## Packages
 
-This monorepo contains two main packages:
-
-- [mcp](/packages/mcp) - MCP Server for all of Twilio's Public API
-- [openapi-mcp-server](/packages/openapi-mcp-server) - An MCP server that serves the given OpenAPI spec
-
-Each package has its own comprehensive README with detailed documentation:
-
-- [MCP Package Documentation](/packages/mcp/README.md)
-- [OpenAPI MCP Server Documentation](/packages/openapi-mcp-server/README.md)
+| Package | npm |
+|---|---|
+| `@ayushmudgal94/twilio-mcp` | [npm](https://www.npmjs.com/package/@ayushmudgal94/twilio-mcp) |
+| `@ayushmudgal94/openapi-mcp-server` | [npm](https://www.npmjs.com/package/@ayushmudgal94/openapi-mcp-server) |
 
 ## Quick Start
 
-The easiest way to get started is by using npx:
+### Claude Code CLI
+
+```bash
+claude mcp add twilio -- npx -y @ayushmudgal94/twilio-mcp \
+  YOUR_ACCOUNT_SID/YOUR_API_KEY:YOUR_API_SECRET \
+  --methods get
+```
+
+### LibreChat (librechat.yaml)
+
+```yaml
+mcpServers:
+  twilio:
+    title: "Twilio"
+    description: "Twilio API integration - Read-only"
+    command: npx
+    args:
+      - "-y"
+      - "@ayushmudgal94/twilio-mcp@1.1.0"
+      - "${TWILIO_API_KEY}"
+      - "--services"
+      - "twilio_api_v2010,twilio_verify_v2"
+      - "--methods"
+      - "get"
+    startup: false
+```
+
+### Generic MCP client (JSON config)
 
 ```json
 {
-  "mcpServers": {
-    "twilio": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@twilio-alpha/mcp",
-        "YOUR_ACCOUNT_SID/YOUR_API_KEY:YOUR_API_SECRET"
-      ]
-    }
+  "twilio": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@ayushmudgal94/twilio-mcp",
+      "YOUR_ACCOUNT_SID/YOUR_API_KEY:YOUR_API_SECRET",
+      "--methods", "get",
+      "--services", "twilio_api_v2010,twilio_verify_v2"
+    ]
   }
 }
 ```
 
+## Configuration Options
+
+| Flag | Alias | Description | Default |
+|---|---|---|---|
+| `--services` | `-e` | Comma-separated list of Twilio API services to load | `twilio_api_v2010` |
+| `--tags` | `-t` | Filter endpoints by OpenAPI tags | all |
+| `--methods` | `-m` | Filter by HTTP method (e.g. `get` for read-only) | all |
+
+### Useful service combinations
+
+| Use case | `--services` value |
+|---|---|
+| Core SMS/Calls only | `twilio_api_v2010` |
+| SMS + Verify | `twilio_api_v2010,twilio_verify_v2` |
+| Messaging service | `twilio_api_v2010,twilio_messaging_v1` |
+| Everything | omit the flag (loads all, can be slow) |
+
+### Credentials format
+
+Pass credentials as a single positional argument: `ACCOUNT_SID/API_KEY:API_SECRET`
+
+Or use named flags: `--accountSid AC... --apiKey SK... --apiSecret ...`
+
 Visit [Twilio API Keys docs](https://www.twilio.com/docs/iam/api-keys) for information on how to find/create your API Key and Secret.
-
-## Security Recommendations
-
-To guard against injection attacks that may allow untrusted systems access to your Twilio data, the ETI team advises users of Twilio MCP servers to avoid installing or running any community MCP servers alongside our official ones. Doing so helps ensure that only trusted MCP servers have access to tools interacting with your Twilio account, reducing the risk of unauthorized data access.
-
-## Basic Configuration Options
-
-Both packages accept configuration parameters. Here's a brief overview:
-
-- **MCP Server**: Use `--services` and `--tags` to filter which APIs to expose
-- **OpenAPI MCP Server**: Use `--apiPath` to specify OpenAPI spec files location
-
-For complete configuration details, refer to the package-specific documentation linked above.
 
 ## Development
 
 ```bash
+# Install dependencies
+npm ci
+
+# Build both packages
+npm run build --workspaces
+
 # Run tests
-npm test
+npm test --workspaces
 
 # Run linting
-npm run lint
+npm run lint --workspaces
 
-# Fix linting issues
-npm run lint:fix
+# Run the server locally
+node packages/mcp/build/index.js \
+  YOUR_ACCOUNT_SID/YOUR_API_KEY:YOUR_API_SECRET \
+  --methods get
 ```
 
-## Troubleshooting Common Issues
+## Publishing to npm
 
-- **Context Size Limitations**: Due to LLM context limits, load specific APIs using `--services` or `--tags`
-- **Authentication Issues**: Verify your Twilio API credentials format and permissions
-- **API Versioning**: Check you're using the correct API version (v1, v2, v3) for your needs
+Publishing is manual version bumps + automated CI publish.
 
-For detailed troubleshooting guidance, see the package-specific documentation.
+### Step 1: Bump versions in your PR
 
-## Contributing
+Three files need version changes:
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+| File | What to bump |
+|---|---|
+| `packages/openapi-mcp-server/package.json` | `"version"` |
+| `packages/mcp/package.json` | `"version"` |
+| `packages/mcp/package.json` | `"@ayushmudgal94/openapi-mcp-server"` dependency version (must match) |
+
+Use semver: `patch` for fixes, `minor` for new features/breaking tool name changes, `major` for API contract changes.
+
+### Step 2: Add the `publish` label to the PR
+
+The GitHub Actions workflow only publishes when a merged PR has the `publish` label.
+
+### Step 3: Merge
+
+On merge, CI will:
+1. Run tests and lint
+2. Build both packages
+3. Publish `@ayushmudgal94/openapi-mcp-server` first (dependency)
+4. Publish `@ayushmudgal94/twilio-mcp` second
+
+### Prerequisites (one-time setup)
+
+1. **Enable GitHub Actions** at https://github.com/ayushmudgal/twilio-mcp/actions
+2. **Add `NPM_TOKEN` secret** at https://github.com/ayushmudgal/twilio-mcp/settings/secrets/actions — use a granular access token with publish rights to `@ayushmudgal94/*`
+
+### Publishing manually (without CI)
+
+```bash
+npm run build --workspaces
+cd packages/openapi-mcp-server && npm publish --access public
+cd ../mcp && npm publish --access public
+```
+
+## Syncing with upstream
+
+```bash
+git fetch upstream
+git merge upstream/main
+# resolve conflicts, test, push
+```
+
+## Troubleshooting
+
+- **Tool not found in LibreChat**: Check that tool names use `_` separator (v1.1.0+). Old `--` names cause lookup failures.
+- **Context size too large**: Use `--services` to load only the APIs you need.
+- **npx hangs in container**: Make sure `-y` flag is passed before the package name.
+- **npm publish 403**: Either 2FA is blocking or the token lacks publish rights. Use a granular access token.
 
 ## License
 

@@ -654,7 +654,7 @@ describe('loadTools', () => {
     ];
 
     const { tools } = loadTools(specs);
-    const keyPattern = /^[a-zA-Z0-9_.\-]{1,64}$/;
+    const keyPattern = /^[a-zA-Z0-9_.-]{1,64}$/;
 
     for (const [, tool] of tools) {
       const keys = Object.keys(tool.inputSchema.properties);
@@ -1074,8 +1074,8 @@ describe('loadTools', () => {
 
     // Mapping should be recorded on the API
     expect(api.parameterNameMapping).toEqual({
-      'DateCreated_lt': 'DateCreated<',
-      'StartTime_gt': 'StartTime>',
+      DateCreated_lt: 'DateCreated<',
+      StartTime_gt: 'StartTime>',
     });
   });
 
@@ -1119,7 +1119,7 @@ describe('loadTools', () => {
     expect(tool.inputSchema.properties).not.toHaveProperty('DateCreated<');
     expect(tool.inputSchema.required).toContain('DateCreated_lt');
     expect(api.parameterNameMapping).toEqual({
-      'DateCreated_lt': 'DateCreated<',
+      DateCreated_lt: 'DateCreated<',
     });
   });
 

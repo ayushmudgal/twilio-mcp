@@ -36,11 +36,18 @@ const parsedArgs = async (argv: string[]): Promise<ParsedArgs> => {
       e: 'services',
       m: 'methods',
     },
-    string: ['accountSid', 'apiKey', 'apiSecret', 'tags', 'services', 'methods'],
+    string: [
+      'accountSid',
+      'apiKey',
+      'apiSecret',
+      'tags',
+      'services',
+      'methods',
+    ],
   });
 
-  // eslint-disable-next-line prefer-const
-  let { services: sArgs, accountSid, apiKey, apiSecret, tags: tArgs, methods: mArgs } = parsed;
+  const { services: sArgs, tags: tArgs, methods: mArgs } = parsed;
+  let { accountSid, apiKey, apiSecret } = parsed;
 
   // Handle "accountSid/apiKey:apiSecret" format
   if (

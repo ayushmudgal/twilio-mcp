@@ -39,6 +39,7 @@ describe('parsedArgs', () => {
     expect(result).toEqual({
       services: ['twilio_api_v2010'],
       tags: [],
+      methods: [],
       accountSid: validAccountSid,
       apiKey: validApiKey,
       apiSecret,
@@ -60,6 +61,7 @@ describe('parsedArgs', () => {
     expect(result).toEqual({
       services: ['service1_v1', 'service2_v2'],
       tags: [],
+      methods: [],
       accountSid: validAccountSid,
       apiKey: validApiKey,
       apiSecret,
@@ -125,6 +127,7 @@ describe('parsedArgs', () => {
     expect(result).toEqual({
       services: ['twilio_api_v2010'],
       tags: [],
+      methods: [],
       accountSid: validAccountSid,
       apiKey: validApiKey,
       apiSecret,
@@ -146,6 +149,7 @@ describe('parsedArgs', () => {
     expect(result).toEqual({
       services: ['twilio_api_v2010'],
       tags: [],
+      methods: [],
       accountSid: 'AC11111111111111111111111111111111',
       apiKey: 'SK11111111111111111111111111111111',
       apiSecret: 'differentSecret',
@@ -216,6 +220,7 @@ describe('parsedArgs', () => {
     expect(result).toEqual({
       services: ['service1_v1'],
       tags: ['tag1', 'tag2'],
+      methods: [],
       accountSid: validAccountSid,
       apiKey: validApiKey,
       apiSecret,
@@ -252,6 +257,7 @@ describe('parsedArgs', () => {
     expect(result).toEqual({
       services: ['twilio_api_v2010'],
       tags: [],
+      methods: [],
       accountSid: validAccountSid,
       apiKey: validApiKey,
       apiSecret,

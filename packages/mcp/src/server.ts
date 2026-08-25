@@ -65,8 +65,7 @@ export default class TwilioOpenAPIMCPServer extends OpenAPIMCPServer {
   /**
    * Shorten tool name to fit within 64 character limit after MCP suffix is added.
    * LibreChat adds '_mcp_twilio' (11 chars) suffix, so we limit to 53 chars.
-   * Simple truncation only — no hash suffix to avoid mixed naming patterns
-   * that confuse LLMs into replacing '--' with '__'.
+   * Simple truncation only — no hash suffix to keep naming predictable.
    * @param name Original tool name
    * @param existing Set of already-used names to avoid collisions
    * @returns Shortened tool name

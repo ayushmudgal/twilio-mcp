@@ -353,7 +353,7 @@ describe('loadTools', () => {
     const { tools } = loadTools(specs, filter);
 
     for (const [, tool] of tools) {
-      expect(tool.name).toContain('--getResource');
+      expect(tool.name).toContain('_getResource');
     }
   });
 
@@ -1056,12 +1056,12 @@ describe('loadTools', () => {
     ];
 
     const { tools, apis } = loadTools(specs);
-    const tool = tools.get('service1--listCalls')!;
-    const api = apis.get('service1--listCalls')!;
+    const tool = tools.get('service1_listCalls')!;
+    const api = apis.get('service1_listCalls')!;
 
     // Sanitized keys should be used in the schema
-    expect(tool.inputSchema.properties).toHaveProperty('DateCreated_before');
-    expect(tool.inputSchema.properties).toHaveProperty('StartTime_after');
+    expect(tool.inputSchema.properties).toHaveProperty('DateCreated_lt');
+    expect(tool.inputSchema.properties).toHaveProperty('StartTime_gt');
     expect(tool.inputSchema.properties).toHaveProperty('Status');
 
     // Original invalid keys should not be present
@@ -1069,13 +1069,13 @@ describe('loadTools', () => {
     expect(tool.inputSchema.properties).not.toHaveProperty('StartTime>');
 
     // Required array should use sanitized names
-    expect(tool.inputSchema.required).toContain('StartTime_after');
+    expect(tool.inputSchema.required).toContain('StartTime_gt');
     expect(tool.inputSchema.required).not.toContain('StartTime>');
 
     // Mapping should be recorded on the API
     expect(api.parameterNameMapping).toEqual({
-      DateCreated_before: 'DateCreated<',
-      StartTime_after: 'StartTime>',
+      'DateCreated_lt': 'DateCreated<',
+      'StartTime_gt': 'StartTime>',
     });
   });
 
@@ -1112,14 +1112,14 @@ describe('loadTools', () => {
     ];
 
     const { tools, apis } = loadTools(specs);
-    const tool = tools.get('service1--createRecord')!;
-    const api = apis.get('service1--createRecord')!;
+    const tool = tools.get('service1_createRecord')!;
+    const api = apis.get('service1_createRecord')!;
 
-    expect(tool.inputSchema.properties).toHaveProperty('DateCreated_before');
+    expect(tool.inputSchema.properties).toHaveProperty('DateCreated_lt');
     expect(tool.inputSchema.properties).not.toHaveProperty('DateCreated<');
-    expect(tool.inputSchema.required).toContain('DateCreated_before');
+    expect(tool.inputSchema.required).toContain('DateCreated_lt');
     expect(api.parameterNameMapping).toEqual({
-      DateCreated_before: 'DateCreated<',
+      'DateCreated_lt': 'DateCreated<',
     });
   });
 
@@ -1129,7 +1129,8 @@ describe('loadTools', () => {
   });
 
   it('sanitizePropertyKey should replace < and > correctly', () => {
-    expect(sanitizePropertyKey('DateCreated<')).toBe('DateCreated_before');
-    expect(sanitizePropertyKey('StartTime>')).toBe('StartTime_after');
+    expect(sanitizePropertyKey('DateCreated<')).toBe('DateCreated_lt');
+    expect(sanitizePropertyKey('StartTime>')).toBe('StartTime_gt');
+    expect(sanitizePropertyKey('EndTime<')).toBe('EndTime_lt');
   });
 });

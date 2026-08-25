@@ -144,7 +144,7 @@ export default function loadTools(specs: OpenAPISpec[], filters?: ToolFilters) {
           .forEach(([method, op]) => {
             const operation = op as OpenAPIV3.OperationObject;
 
-            const name = `${spec.name}--${operation.operationId}`;
+            const name = `${spec.name}_${operation.operationId}`;
             const toolDescription =
               operation.description ||
               `Make a ${method.toUpperCase()} request to ${path}`;

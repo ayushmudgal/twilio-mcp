@@ -59,7 +59,7 @@ describe('OpenAPIMCPServer', () => {
       openAPIDir: '/mock/path',
     };
 
-    mockToolId = 'mockService--mockOperationId';
+    mockToolId = 'mockService_mockOperationId';
     mockTool = {
       id: mockToolId,
       name: mockToolId,
@@ -413,7 +413,7 @@ describe('OpenAPIMCPServer', () => {
       },
     });
 
-    expect(customServer.http.get).toHaveBeenCalledWith('/api/resource', {
+    expect(customServer.http.get).toHaveBeenCalledWith('/api/resource?param1=value1', {
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -444,11 +444,11 @@ describe('OpenAPIMCPServer', () => {
     await expect(
       customServer.testHandleCallTool({
         params: {
-          name: 'nonExistentTool--unknown',
+          name: 'nonExistentTool_unknown',
           arguments: {},
         },
       }),
-    ).rejects.toThrow('Tool (nonExistentTool--unknown) not found: unknown');
+    ).rejects.toThrow('Tool (nonExistentTool_unknown) not found: unknown');
   });
 
   it('should throw error when API call fails', async () => {
@@ -535,8 +535,8 @@ describe('OpenAPIMCPServer', () => {
       method: 'GET',
       contentType: 'application/json',
       parameterNameMapping: {
-        DateCreated_before: 'DateCreated<',
-        StartTime_after: 'StartTime>',
+        DateCreated_lt: 'DateCreated<',
+        StartTime_gt: 'StartTime>',
       },
     };
 
@@ -544,8 +544,8 @@ describe('OpenAPIMCPServer', () => {
       mockTool,
       apiWithMapping,
       {
-        DateCreated_before: '2024-01-01',
-        StartTime_after: '2024-06-01',
+        DateCreated_lt: '2024-01-01',
+        StartTime_gt: '2024-06-01',
         Status: 'completed',
       },
     );

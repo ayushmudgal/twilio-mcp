@@ -207,7 +207,7 @@ export default class OpenAPIMCPServer {
    */
   // eslint-disable-next-line class-methods-use-this
   protected async loadCapabilities() {
-    /* no--op */
+    /* no-op */
   }
 
   /**
@@ -317,14 +317,9 @@ export default class OpenAPIMCPServer {
    */
   private async handleCallTool(request: CallToolRequest) {
     const id = request.params.name;
-    // Claude Code/LibreChat may:
-    // 1. Add suffix like '_mcp_twilio' to tool names
-    // 2. Replace '--' with '__' in tool names
-    // Normalize for lookup by removing suffix and converting separators
-    const normalizedId = id
-      .replace(/_mcp_[^_]+$/, '') // Remove _mcp_* suffix
-      .replace(/__/g, '--');       // Convert __ to --
-    const name: string = normalizedId.split('--')[1]?.trim();
+    // LibreChat adds '_mcp_<serverName>' suffix to tool names — strip it for lookup
+    const normalizedId = id.replace(/_mcp_[^_]+$/, '');
+    const name: string = normalizedId.split('_').slice(1).join('_')?.trim();
     const tool = this.tools.get(normalizedId);
     const api = this.apis.get(normalizedId);
     if (!tool || !api) {

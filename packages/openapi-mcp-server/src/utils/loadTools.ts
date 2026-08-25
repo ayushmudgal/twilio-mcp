@@ -52,7 +52,7 @@ export function sanitizePropertyKey(key: string): string {
   return key
     .replace(/</g, '_lt')
     .replace(/>/g, '_gt')
-    .replace(/[^a-zA-Z0-9_.\-]/g, '_')
+    .replace(/[^a-zA-Z0-9_.-]/g, '_')
     .slice(0, 64);
 }
 
@@ -139,7 +139,9 @@ export default function loadTools(specs: OpenAPISpec[], filters?: ToolFilters) {
             if (methods.length === 0) {
               return true;
             }
-            return methods.some((m) => m.toLowerCase() === method.toLowerCase());
+            return methods.some(
+              (m) => m.toLowerCase() === method.toLowerCase(),
+            );
           })
           .forEach(([method, op]) => {
             const operation = op as OpenAPIV3.OperationObject;

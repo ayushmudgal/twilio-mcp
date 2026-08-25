@@ -89,6 +89,7 @@ export default class OpenAPIMCPServer {
    * @returns Array of parameter names found in the URL
    * @private
    */
+  // eslint-disable-next-line class-methods-use-this
   private getPathParameters(url: string): string[] {
     const matches = url.matchAll(/{(.*?)}/g);
     return Array.from(matches, (m) => m[1]);
@@ -101,6 +102,7 @@ export default class OpenAPIMCPServer {
    * @returns Query string (without leading ?)
    * @private
    */
+  // eslint-disable-next-line class-methods-use-this
   private buildQueryString(
     body: Record<string, unknown> | undefined,
     pathParams: string[],

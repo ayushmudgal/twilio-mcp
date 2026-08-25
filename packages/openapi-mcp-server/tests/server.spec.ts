@@ -413,9 +413,12 @@ describe('OpenAPIMCPServer', () => {
       },
     });
 
-    expect(customServer.http.get).toHaveBeenCalledWith('/api/resource?param1=value1', {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    expect(customServer.http.get).toHaveBeenCalledWith(
+      '/api/resource?param1=value1',
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
 
     expect(result).toEqual({
       content: [
@@ -540,15 +543,11 @@ describe('OpenAPIMCPServer', () => {
       },
     };
 
-    const result = testServer.testCallToolBody(
-      mockTool,
-      apiWithMapping,
-      {
-        DateCreated_lt: '2024-01-01',
-        StartTime_gt: '2024-06-01',
-        Status: 'completed',
-      },
-    );
+    const result = testServer.testCallToolBody(mockTool, apiWithMapping, {
+      DateCreated_lt: '2024-01-01',
+      StartTime_gt: '2024-06-01',
+      Status: 'completed',
+    });
 
     expect(result).toEqual({
       'DateCreated<': '2024-01-01',

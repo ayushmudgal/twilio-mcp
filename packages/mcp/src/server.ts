@@ -70,10 +70,7 @@ export default class TwilioOpenAPIMCPServer extends OpenAPIMCPServer {
    * @param existing Set of already-used names to avoid collisions
    * @returns Shortened tool name
    */
-  private static shortenToolName(
-    name: string,
-    existing: Set<string>,
-  ): string {
+  private static shortenToolName(name: string, existing: Set<string>): string {
     const MAX_LENGTH = 53; // 64 - 11 for '_mcp_twilio' suffix
     if (name.length <= MAX_LENGTH) {
       return name;

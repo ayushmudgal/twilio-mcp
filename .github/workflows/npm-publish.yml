@@ -15,8 +15,8 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npm run test
-      - run: npm run lint
+      - run: npm run test --workspaces
+      - run: npm run lint --workspaces
 
   publish-npm:
     needs: build
@@ -29,7 +29,12 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org/
       - run: npm ci
-      - run: npm run build
-      - run: npx changeset publish
+      - run: npm run build --workspaces
+      - name: Publish openapi-mcp-server
+        run: cd packages/openapi-mcp-server && npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{secrets.twilio_alpha_npm_token}}
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+      - name: Publish twilio-mcp
+        run: cd packages/mcp && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

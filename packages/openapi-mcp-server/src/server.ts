@@ -84,6 +84,56 @@ export default class OpenAPIMCPServer {
   }
 
   /**
+   * Extract path parameter names from a URL template
+   * @param url URL template with {param} placeholders
+   * @returns Array of parameter names found in the URL
+   * @private
+   */
+  private getPathParameters(url: string): string[] {
+    const matches = url.matchAll(/{(.*?)}/g);
+    return Array.from(matches, (m) => m[1]);
+  }
+
+  /**
+   * Build query string from parameters not used in path interpolation
+   * @param body All parameters
+   * @param pathParams Parameters used in the path
+   * @returns Query string (without leading ?)
+   * @private
+   */
+  private buildQueryString(
+    body: Record<string, unknown> | undefined,
+    pathParams: string[],
+  ): string {
+    if (!body) {
+      return '';
+    }
+
+    const queryParams: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(body)) {
+      if (!pathParams.includes(key) && value !== undefined && value !== null) {
+        queryParams[key] = value;
+      }
+    }
+
+    if (Object.keys(queryParams).length === 0) {
+      return '';
+    }
+
+    // Use URL encoding for query parameters
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (Array.isArray(value)) {
+        value.forEach((v) => params.append(key, String(v)));
+      } else {
+        params.append(key, String(value));
+      }
+    }
+
+    return params.toString();
+  }
+
+  /**
    * Make a request to the API
    * @param id
    * @param api
@@ -101,7 +151,11 @@ export default class OpenAPIMCPServer {
     };
 
     if (api.method === 'GET') {
-      return this.http.get(url, { headers });
+      // For GET requests, append remaining parameters as query string
+      const pathParams = this.getPathParameters(api.path);
+      const queryString = this.buildQueryString(body, pathParams);
+      const fullUrl = queryString ? `${url}?${queryString}` : url;
+      return this.http.get(fullUrl, { headers });
     }
 
     if (api.method === 'POST') {
@@ -124,7 +178,14 @@ export default class OpenAPIMCPServer {
    */
   // eslint-disable-next-line class-methods-use-this
   protected callToolBody(tool: Tool, api: API, body: Record<string, unknown>) {
-    return body;
+    if (!api.parameterNameMapping) {
+      return body;
+    }
+    const mapped: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(body)) {
+      mapped[api.parameterNameMapping[key] ?? key] = value;
+    }
+    return mapped;
   }
 
   /**
@@ -146,7 +207,7 @@ export default class OpenAPIMCPServer {
    */
   // eslint-disable-next-line class-methods-use-this
   protected async loadCapabilities() {
-    /* no--op */
+    /* no-op */
   }
 
   /**
@@ -256,16 +317,18 @@ export default class OpenAPIMCPServer {
    */
   private async handleCallTool(request: CallToolRequest) {
     const id = request.params.name;
-    const name: string = id.split('--')[1]?.trim();
-    const tool = this.tools.get(id);
-    const api = this.apis.get(id);
+    // LibreChat adds '_mcp_<serverName>' suffix to tool names — strip it for lookup
+    const normalizedId = id.replace(/_mcp_[^_]+$/, '');
+    const name: string = normalizedId.split('_').slice(1).join('_')?.trim();
+    const tool = this.tools.get(normalizedId);
+    const api = this.apis.get(normalizedId);
     if (!tool || !api) {
       throw new Error(`Tool (${id}) not found: ${name}`);
     }
     const rawBody = request.params.arguments ?? {};
     const body = this.callToolBody(tool, api, rawBody);
 
-    const httpResponse = await this.makeRequest(id, api, body);
+    const httpResponse = await this.makeRequest(normalizedId, api, body);
     if (!httpResponse.ok) {
       this.logger.error({
         message: 'failed to make request',

@@ -1,12 +1,12 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { logger } from '@twilio-alpha/openapi-mcp-server';
+import { logger } from '@ayushmudgal94/openapi-mcp-server';
 
 import TwilioOpenAPIMCPServer from '@app/server';
 import { args, type AccountCredentials } from '@app/utils';
 
 export default async function main() {
   let credentials: AccountCredentials | null;
-  const { services, accountSid, apiKey, apiSecret, tags } = await args(
+  const { services, accountSid, apiKey, apiSecret, tags, methods } = await args(
     process.argv,
   );
 
@@ -25,6 +25,7 @@ export default async function main() {
     filters: {
       services,
       tags,
+      methods,
     },
     accountSid: credentials.accountSid,
     credentials: {
